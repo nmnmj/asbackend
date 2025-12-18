@@ -9,7 +9,7 @@ export const AuthController = {
     res
       .cookie('token', token, {
         httpOnly: true,
-        secure: true,  // set to true in production with https
+        secure: false,  // set to true in production with https
         sameSite: 'none', // none in production with https lax for development
         maxAge: 7 * 24 * 60 * 60 * 1000,
         path: "/", 
@@ -25,7 +25,7 @@ export const AuthController = {
     res
       .cookie('token', token, {
         httpOnly: true,
-        secure: true,  // set to true in production with https
+        secure: false,  // set to true in production with https
         sameSite: 'none', // none in production with https
         maxAge: 7 * 24 * 60 * 60 * 1000,
         path: "/", 
