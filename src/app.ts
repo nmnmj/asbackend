@@ -6,10 +6,33 @@ import { errorHandler } from './middlewares/error.middleware';
 import userRoutes from './modules/users/user.routes';
 import taskRoutes from './modules/tasks/task.routes';
 import notificationRoutes from './modules/notifications/notification.routes';
+import dotenv from "dotenv";
+dotenv.config();
 
 const app = express();
 
-app.use(cors({ origin: true, credentials: true }));
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(",")
+  : [];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow non-browser requests (Postman, curl, health checks)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+  })
+);
+
 app.use(express.json());
 app.use(cookieParser());
 
