@@ -23,8 +23,9 @@ export const AuthController = {
     res
       .cookie('token', token, {
         httpOnly: true,
-        secure: false,
-        sameSite: 'lax',
+        secure: true,  // set to true in production with https
+        sameSite: 'none', // none in production with https
+        maxAge: 7 * 24 * 60 * 60 * 1000
       })
       .status(200)
       .json({ user });
