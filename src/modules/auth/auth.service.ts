@@ -17,7 +17,7 @@ export const AuthService = {
   },
 
   login: async (email: string, password: string) => {
-    const user = await UserRepository.findByEmail(email);
+    const user = await UserRepository.findByEmail(email).select('-password');
     if (!user) {
       throw new Error('Invalid credentials');
     }
