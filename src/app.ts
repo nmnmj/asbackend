@@ -1,5 +1,4 @@
 import express from 'express';
-import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import authRoutes from './modules/auth/auth.routes';
 import { errorHandler } from './middlewares/error.middleware';
@@ -34,7 +33,6 @@ app.use(
 );
 
 app.use(express.json());
-app.use(cookieParser());
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'OK' });

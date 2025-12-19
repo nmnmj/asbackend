@@ -1,7 +1,14 @@
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import http from 'http';
+import { verifyToken } from '../utils/jwt';
 
-const connectedUsers = new Map<string, string>(); 
+interface AuthenticatedSocket extends Socket {
+  data: {
+    userId: string;
+  };
+}
+
+const connectedUsers = new Map<string, string>();
 // userId -> socketId
 
 export const initSocket = (server: http.Server) => {
@@ -12,32 +19,49 @@ export const initSocket = (server: http.Server) => {
     },
   });
 
-  io.on('connection', (socket) => {
-    console.log('Socket connected:', socket.id);
+  /**
+   * 🔐 JWT Authentication Middleware
+   */
+  io.use((socket: AuthenticatedSocket, next) => {
+    const authHeader = socket.handshake.auth?.token;
 
-    socket.on('join', (userId: string) => {
-      socket.join(userId);
-      connectedUsers.set(userId, socket.id);
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return next(new Error('Unauthorized'));
+    }
 
-      console.log(`User ${userId} joined`);
-      console.log('Currently connected users:', [...connectedUsers.keys()]);
-    });
-    
+    const token = authHeader.split(' ')[1];
+
+    try {
+      const payload = verifyToken(token);
+      socket.data.userId = payload.userId;
+      next();
+    } catch (err) {
+      next(new Error('Invalid token'));
+    }
+  });
+
+  /**
+   * 🔌 Connection Handler
+   */
+  io.on('connection', (socket: AuthenticatedSocket) => {
+    const userId = socket.data.userId;
+
+    socket.join(userId);
+    connectedUsers.set(userId, socket.id);
+
+    console.log(`✅ Socket connected: ${socket.id}`);
+    console.log(`👤 User joined: ${userId}`);
+    console.log('📌 Connected users:', [...connectedUsers.keys()]);
+
     socket.onAny((event, payload) => {
-      console.log("🔥 onany EVENT:", event, payload);
+      console.log('🔥 onAny EVENT:', event, payload);
     });
 
     socket.on('disconnect', () => {
-      // Remove user by socketId
-      for (const [userId, sId] of connectedUsers.entries()) {
-        if (sId === socket.id) {
-          connectedUsers.delete(userId);
-          break;
-        }
-      }
+      connectedUsers.delete(userId);
 
-      console.log('Socket disconnected:', socket.id);
-      console.log('Currently connected users:', [...connectedUsers.keys()]);
+      console.log(`❌ Socket disconnected: ${socket.id}`);
+      console.log('📌 Connected users:', [...connectedUsers.keys()]);
     });
   });
 
