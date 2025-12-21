@@ -1,0 +1,78 @@
+Docker images are pushed to DockerHub for running application in single command
+
+Step 1 — Install Docker Desktop
+Windows / macOS / Linux
+
+Step 2 — Create a folder
+mkdir ablespace
+cd ablespace
+
+Step 3 — Save docker-compose.yml
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:7
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  backend:
+    image: nmnmj/ablespacedocker-backend:latest
+    restart: always
+    ports:
+      - "4000:4000"
+    environment:
+      PORT: 4000
+      MONGO_URI: mongodb://mongo:27017/taskmanager
+      JWT_SECRET: supersecretkey
+      JWT_EXPIRES_IN: 7d
+      NODE_ENV: production
+      FRONTEND_URL: http://localhost:5173
+    networks:
+      - backend
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  frontend:
+    image: nmnmj/ablespacedocker-frontend:latest
+    restart: always
+    ports:
+      - "5173:80"
+    environment:
+      VITE_API_BASE_URL: http://localhost:4000/api
+      VITE_SOCKET_URL: http://localhost:4000
+    networks:
+      - backend
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  mongo-data:
+
+networks:
+  backend:
+
+
+Paste the file above.
+Step 4 — Run ONE command
+docker-compose up --build -d
+Step 5 — Check http://localhost:5173 on your browser
